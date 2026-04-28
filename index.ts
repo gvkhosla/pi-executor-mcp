@@ -126,6 +126,67 @@ export default function executorMcpExtension(pi: ExtensionAPI) {
     };
   }
 
+  function executeCode(code: string, signal?: AbortSignal) {
+    return callExecutorTool("execute", { code }, signal);
+  }
+
+  function asJson(value: unknown) {
+    return JSON.stringify(value).replaceAll("</", "<\\/");
+  }
+
+  pi.registerTool({
+    name: "executor_sources",
+    label: "Executor Sources",
+    description: "List configured Executor sources and tool counts.",
+    promptSnippet: "List configured Executor sources and tool counts.",
+    promptGuidelines: [
+      "Use executor_sources before executor_search when you need to understand what integrations are configured in Executor.",
+    ],
+    parameters: Type.Object({}),
+    async execute(_toolCallId, _params, signal) {
+      return executeCode("return await tools.executor.sources.list();", signal);
+    },
+  });
+
+  pi.registerTool({
+    name: "executor_search",
+    label: "Executor Search",
+    description: "Search Executor's configured tools by natural-language query.",
+    promptSnippet: "Search Executor's configured tools by intent or namespace.",
+    promptGuidelines: [
+      "Use executor_search to find an Executor tool before writing executor_execute TypeScript for unfamiliar APIs.",
+    ],
+    parameters: Type.Object({
+      query: Type.String({ minLength: 1, description: "Natural-language search query, e.g. 'github issues'." }),
+      namespace: Type.Optional(Type.String({ description: "Optional Executor namespace to narrow search." })),
+      limit: Type.Optional(Type.Number({ minimum: 1, maximum: 50, description: "Maximum number of matches. Defaults to 10." })),
+    }),
+    async execute(_toolCallId, params, signal) {
+      const args = {
+        query: params.query,
+        ...(params.namespace ? { namespace: params.namespace } : {}),
+        limit: params.limit ?? 10,
+      };
+      return executeCode(`return await tools.search(${asJson(args)});`, signal);
+    },
+  });
+
+  pi.registerTool({
+    name: "executor_describe",
+    label: "Executor Describe",
+    description: "Describe an Executor tool's TypeScript and JSON schema by path.",
+    promptSnippet: "Inspect an Executor tool schema before calling it.",
+    promptGuidelines: [
+      "Use executor_describe after executor_search and before executor_execute when you need a tool's exact input shape.",
+    ],
+    parameters: Type.Object({
+      path: Type.String({ minLength: 1, description: "Executor tool path, e.g. 'github.issues.create'." }),
+    }),
+    async execute(_toolCallId, params, signal) {
+      return executeCode(`return await tools.describe.tool({ path: ${asJson(params.path)} });`, signal);
+    },
+  });
+
   pi.registerTool({
     name: "executor_execute",
     label: "Executor Execute",
@@ -142,7 +203,7 @@ export default function executorMcpExtension(pi: ExtensionAPI) {
       }),
     }),
     async execute(_toolCallId, params, signal) {
-      return callExecutorTool("execute", { code: params.code }, signal);
+      return executeCode(params.code, signal);
     },
   });
 
@@ -182,13 +243,53 @@ export default function executorMcpExtension(pi: ExtensionAPI) {
     },
   });
 
+  pi.registerCommand("executor-search", {
+    description: "Search Executor tools by natural-language query",
+    handler: async (args, ctx) => {
+      const query = args.trim();
+      if (!query) {
+        ctx.ui.notify('Usage: /executor-search <query>  e.g. /executor-search github issues', "warning");
+        return;
+      }
+
+      try {
+        const result = await executeCode(
+          `return await tools.search({ query: ${asJson(query)}, limit: 10 });`,
+        );
+        ctx.ui.notify(`Executor search results for "${query}":\n${result.content[0].text}`, "info");
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        ctx.ui.notify(`Executor search failed: ${message}`, "error");
+      }
+    },
+  });
+
+  pi.registerCommand("executor-describe", {
+    description: "Describe an Executor tool by path",
+    handler: async (args, ctx) => {
+      const path = args.trim();
+      if (!path) {
+        ctx.ui.notify('Usage: /executor-describe <tool.path>  e.g. /executor-describe github.issues.create', "warning");
+        return;
+      }
+
+      try {
+        const result = await executeCode(
+          `return await tools.describe.tool({ path: ${asJson(path)} });`,
+        );
+        ctx.ui.notify(`Executor tool ${path}:\n${result.content[0].text}`, "info");
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        ctx.ui.notify(`Executor describe failed: ${message}`, "error");
+      }
+    },
+  });
+
   pi.registerCommand("executor-status", {
     description: "Check the Executor MCP connection and configured source list",
     handler: async (_args, ctx) => {
       try {
-        const result = await callExecutorTool("execute", {
-          code: "return await tools.executor.sources.list();",
-        });
+        const result = await executeCode("return await tools.executor.sources.list();");
         ctx.ui.notify(`Executor MCP connected:\n${result.content[0].text}`, "info");
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);

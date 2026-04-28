@@ -1,6 +1,6 @@
 {
   "name": "pi-executor-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Unofficial Pi extension that connects Pi to Executor via Executor's MCP server.",
   "license": "MIT",
   "type": "module",
