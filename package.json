@@ -1,0 +1,51 @@
+{
+  "name": "pi-executor-mcp",
+  "version": "0.1.0",
+  "description": "Unofficial Pi extension that connects Pi to Executor via Executor's MCP server.",
+  "license": "MIT",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "executor",
+    "mcp",
+    "ai-agent"
+  ],
+  "homepage": "https://github.com/gvkhosla/pi-executor-mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gvkhosla/pi-executor-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gvkhosla/pi-executor-mcp/issues"
+  },
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "peerDependenciesMeta": {
+    "@mariozechner/pi-coding-agent": {
+      "optional": true
+    },
+    "typebox": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@mariozechner/pi-coding-agent": "^0.70.5",
+    "@types/node": "^22.0.0",
+    "typebox": "^1.1.34",
+    "typescript": "^5.9.0"
+  }
+}
