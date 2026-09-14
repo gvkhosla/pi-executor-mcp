@@ -60,7 +60,11 @@ Or write `~/.pi/agent/executor-mcp.json`:
 
 ## Install
 
-From GitHub:
+```bash
+pi install npm:pi-executor-mcp
+```
+
+Or from GitHub:
 
 ```bash
 pi install git:github.com/gvkhosla/pi-executor-mcp
