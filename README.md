@@ -1,5 +1,7 @@
 # pi-executor-mcp
 
+[![npm](https://img.shields.io/npm/v/pi-executor-mcp)](https://www.npmjs.com/package/pi-executor-mcp)
+
 Unofficial [Pi](https://pi.dev) extension that connects Pi to [Executor](https://executor.sh) through Executor's MCP server.
 
 Pi does not ship a built-in MCP client. This package adds a small bridge so Pi can use Executor's shared tool catalog from normal Pi conversations.
