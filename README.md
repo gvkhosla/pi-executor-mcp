@@ -38,6 +38,26 @@ Open Executor's UI to add sources:
 executor web
 ```
 
+### Self-hosted / custom Executor binary
+
+By default the extension spawns `executor mcp`. Point it at a self-hosted binary or wrapper with env vars (highest priority) or a config file:
+
+```bash
+export EXECUTOR_BIN=/usr/local/bin/executor
+export EXECUTOR_MCP_ARGS="mcp --config /etc/executor/config.toml"
+```
+
+Or write `~/.pi/agent/executor-mcp.json`:
+
+```json
+{
+  "command": "/usr/local/bin/executor",
+  "args": ["mcp"]
+}
+```
+
+`EXECUTOR_MCP_CONFIG` overrides the config path. Env vars override the file. Then `/executor-restart`.
+
 ## Install
 
 From GitHub:
@@ -126,7 +146,7 @@ Executor tools may be able to read, create, update, or delete data in connected 
 - Executor tools are still ultimately called through Executor's generic MCP `execute` tool, not one Pi tool per Executor integration.
 - Paused executions require explicit resume through `executor_resume`.
 - Rich auth/elicitation UI is minimal right now.
-- Custom Executor binary path/scope settings are not exposed yet.
+- Custom Executor binary path is supported via `EXECUTOR_BIN` / `EXECUTOR_MCP_ARGS` or `~/.pi/agent/executor-mcp.json`. HTTP MCP transports are not supported yet.
 
 ## Development
 

@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "typebox";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -9,6 +12,48 @@ type McpCallResult = {
   isError?: boolean;
   [key: string]: unknown;
 };
+
+type ExecutorLaunch = {
+  command: string;
+  args: string[];
+  configPath: string;
+};
+
+function splitArgs(value: string | undefined): string[] | undefined {
+  if (!value?.trim()) return undefined;
+  return value.trim().split(/\s+/);
+}
+
+function loadExecutorLaunch(): ExecutorLaunch {
+  const configPath =
+    process.env.EXECUTOR_MCP_CONFIG?.trim() || join(homedir(), ".pi/agent/executor-mcp.json");
+
+  let command = "executor";
+  let args = ["mcp"];
+
+  try {
+    const raw = JSON.parse(readFileSync(configPath, "utf8")) as {
+      command?: unknown;
+      args?: unknown;
+    };
+    if (typeof raw.command === "string" && raw.command.trim()) {
+      command = raw.command.trim();
+    }
+    if (Array.isArray(raw.args) && raw.args.every((item) => typeof item === "string")) {
+      args = raw.args;
+    }
+  } catch {
+    // Config is optional; cloud `executor mcp` remains the default.
+  }
+
+  const envCommand = process.env.EXECUTOR_BIN?.trim() || process.env.EXECUTOR_COMMAND?.trim();
+  if (envCommand) command = envCommand;
+
+  const envArgs = splitArgs(process.env.EXECUTOR_MCP_ARGS);
+  if (envArgs) args = envArgs;
+
+  return { command, args, configPath };
+}
 
 const EXECUTOR_EXECUTE_DESCRIPTION = `Execute TypeScript in Executor's MCP runtime with access to configured API tools.
 
@@ -74,10 +119,11 @@ export default function executorMcpExtension(pi: ExtensionAPI) {
     if (connecting) return connecting;
 
     connecting = (async () => {
+      const launch = loadExecutorLaunch();
       const nextClient = new Client({ name: "pi-executor-mcp", version: "1.0.0" });
       const nextTransport = new StdioClientTransport({
-        command: "executor",
-        args: ["mcp"],
+        command: launch.command,
+        args: launch.args,
         stderr: "pipe",
       });
 
